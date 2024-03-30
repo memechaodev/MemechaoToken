@@ -1,0 +1,1 @@
+# Memechao Token contract
