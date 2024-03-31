@@ -205,16 +205,17 @@ contract Token is Context, IERC20Metadata, Ownable {
   string private _name;
   string private _symbol;
   uint8 private constant _decimals = 18;
-  uint256 public constant transactionTaxAmount = 5;
   uint256 public constant presaleReserve = 5_000_000_000 * (10 ** _decimals);
   uint256 public constant liquidityReserve = 3_500_000_000 * (10 ** _decimals);
   uint256 public constant projectFundsReserve = 1_000_000_000 * (10 ** _decimals);
   uint256 public constant stakingReserve = 500_000_000 * (10 ** _decimals);
+  uint256 public transactionTaxAmount = 5;
   address public transactionTaxReceiver = _msgSender();
 
   mapping(address => bool) public isWhitelisted;
   event AddressWhitelisted(address indexed _address, bool _status);
   event TransactionTaxReceiverChanged(address indexed _oldReceiver, address indexed _newReceiver);
+  event TransactionTaxRenounced();
 
   /**
    * @dev Contract constructor.
@@ -226,6 +227,15 @@ contract Token is Context, IERC20Metadata, Ownable {
     _mint(0xC33433b67ad30DB73c1AB277D5a889528FB2aB56, liquidityReserve);
     _mint(0x4dF3FeA53C62D3abBbD1A3c77BD599Ce800165F4, projectFundsReserve);
     _mint(0x0C462fA8FB45C020fe22B67Cac24b56fE8bB0bD1, stakingReserve);
+  }
+
+  /**
+   * @dev Reset the transaction tax amount to zero, effectively renouncing transaction taxes.
+   * Only the contract owner can execute this function.
+   */
+  function renounceTransactionTax() external onlyOwner {
+    transactionTaxAmount = 0;
+    emit TransactionTaxRenounced();
   }
 
   /**
@@ -333,7 +343,7 @@ contract Token is Context, IERC20Metadata, Ownable {
    * @return A boolean value indicating whether the transfer was successful.
    */
   function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
-    uint256 transactionTax = isWhitelisted[sender] || isWhitelisted[recipient] ? 0 : ((amount * 5) / 100);
+    uint256 transactionTax = isWhitelisted[sender] || isWhitelisted[recipient] ? 0 : ((amount * transactionTaxAmount) / 100);
     if (transactionTax > 0) _transfer(sender, transactionTaxReceiver, transactionTax);
     _transfer(sender, recipient, amount - transactionTax);
     uint256 currentAllowance = _allowances[sender][_msgSender()];
